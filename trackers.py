@@ -1,3 +1,5 @@
+#!/usr/bin/python3
+
 ###############################################################
 ##          Created by Red Squirrel (@redsquirrel87)         ##
 ##                 https://redsquirrel87.com                 ##
@@ -7,6 +9,9 @@ import sys
 import json
 import argparse
 
+import urllib3
+urllib3.disable_warnings()
+
 ######################### Custom data #########################
 ##          Please edit the five following variables         ##
 ##        with your qBittorrent WebUI custom settings        ##
@@ -14,8 +19,8 @@ import argparse
 user="username"
 pswd="password"
 host="localhost"
-protocol="http"
-port="8080"
+protocol="https"
+port="8000"
 
 ################# DO NOT EDIT BELOW THIS LINE #################
 
@@ -41,7 +46,7 @@ args=parser.parse_args()
 
 print ("Downloading new list of stable trackers from newtrackon.com, please wait...",end=" ")
 data={"include_ipv4_only_trackers":args.ipv4,"include_ipv6_only_trackers":args.ipv6}
-req=requests.get(stable_trackers,data)
+req=requests.get(stable_trackers,data,verify=False)
 if req.status_code == 200 :
         print ("OK!")
 else:
@@ -52,7 +57,7 @@ trackers=req.text
 print ("")
 print ("Logging in to your qBittorent WebUI...",end=" ")
 data={"username":user,"password":pswd}
-result=requests.post(api_login, data=data).text
+result=requests.post(api_login,data=data,verify=False).text
 if result.lower() == "ok." :
         print ("OK!")
 else:
@@ -84,8 +89,7 @@ if len(cat) > 0:
        data["category"]=cat
 if len(tag) > 0:
        data["tag"]=tag
-#data={"filter":"&".join(filter),"category":cat,"tag":tag}
-result=requests.get(api_get_torrents,data).text
+result=requests.get(api_get_torrents,data,verify=False).text
 json_data=json.loads(result)
 torrents=len(json_data)
 if torrents == 0 :
@@ -100,7 +104,7 @@ else:
                 if args.clear :
                         print ("        Cleaning currently not working trackers...")
                         data={"hash":torrent["hash"]}
-                        old_trackers=requests.get(api_get_trackers,data).text
+                        old_trackers=requests.get(api_get_trackers,data,verify=False).text
                         json_trackers=json.loads(old_trackers)
                         rem_list=[]
                         for tracker in json_trackers :
@@ -112,7 +116,7 @@ else:
                         if len(rem_list) > 0 :
                                 print ("        Removing flagged trackers...",end=" ")
                                 data={"hash":torrent["hash"],"urls":"|".join(rem_list)}
-                                remove_trackers=requests.get(api_rem_trackers,data).status_code
+                                remove_trackers=requests.post(api_rem_trackers,data,verify=False).status_code
                                 if remove_trackers == 200 :
                                         print (str(len(rem_list)) + " not working trackers removed successfully for this torrent.")
                                 else :
@@ -121,11 +125,10 @@ else:
                                 print ("        All the trackers of this torrent are currently working, no need to remove any of them.")
                 print ("        Adding the new stable trackers to the torrent...",end=" ")
                 data={"hash":torrent["hash"],"urls":trackers}
-                add_trackers=requests.post(api_add_trackers,data).status_code
+                add_trackers=requests.post(api_add_trackers,data,verify=False).status_code
                 if add_trackers == 200 :
                         print ("SUCCESS!")
                 else :
                         print ("ERROR!")
 print ("")
 print ("Procedure completed, bye bye!")
-                               
